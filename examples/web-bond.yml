@@ -3,6 +3,12 @@
   vars:
     - ansible_network_os: nmstate
   tasks:
+    - net_linkagg:
+        name: web-bond
+        state: up
+        members:
+            - eth1
+        debug: yes
     - net_l3_interface:
         name: web-bond
         state: present

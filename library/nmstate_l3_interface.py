@@ -200,6 +200,8 @@ def run_module():
     new_partial_state = {'interfaces': interfaces}
 
     if module.params.get('debug'):
+        result['previous_state'] = previous_state
+        result['new_partial_state'] = new_partial_state
         result['debugfile'] = write_debug_state(MODULE_NAME, new_partial_state)
 
     if module.check_mode:

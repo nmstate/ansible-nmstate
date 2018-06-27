@@ -17,11 +17,11 @@ tox
 Set an IP address for the interface `web-bond` on the host `rhel7-cloud`:
 
 ```shell
-ansible -M $PWD/library -m net_l3_interface -a 'name=web-bond state=present ipv4=192.0.2.7/24' -e ansible_network_os=nmstate -i rhel7-cloud, all
+ANSIBLE_MODULE_UTILS=$PWD/module_utils ansible -M $PWD/library -m net_l3_interface -a 'name=web-bond state=present ipv4=192.0.2.7/24' -e ansible_network_os=nmstate -i rhel7-cloud, all
 ```
 
 For example playbooks, see the `examples/` directory. Run a playbook:
 
 ```shell
-ansible-playbook -M $PWD/library examples/web-bond.yml -i rhel7-cloud,
+ANSIBLE_MODULE_UTILS=$PWD/module_utils ansible-playbook -M $PWD/library examples/web-bond.yml -i rhel7-cloud,
 ```

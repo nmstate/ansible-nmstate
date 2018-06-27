@@ -18,16 +18,16 @@
 # along with ansible-nmstate.  If not, see <https://www.gnu.org/licenses/>.
 
 from copy import deepcopy
-import json
-import os
-import tempfile
-import time
 
 from libnmstate import netapplier
 from libnmstate import netinfo
 
 from ansible.module_utils.basic import AnsibleModule
 from ansible.module_utils.network.common.utils import remove_default_spec
+
+from ansible.module_utils.ansible_nmstate import write_debug_state
+
+MODULE_NAME = "nmstate_l3_interface"
 
 ANSIBLE_METADATA = {
     'metadata_version': '1.1',
@@ -200,11 +200,7 @@ def run_module():
     new_partial_state = {'interfaces': interfaces}
 
     if module.params.get('debug'):
-        debugfile, debugname = tempfile.mkstemp(
-            prefix='nmstate_l3_interface_debug-{}-'.format(int(time.time())))
-        debugfile = os.fdopen(debugfile, "w")
-        debugfile.write(json.dumps(new_partial_state, indent=4))
-        result['debugfile'] = debugname
+        result['debugfile'] = write_debug_state(MODULE_NAME, new_partial_state)
 
     if module.check_mode:
         new_full_state = deepcopy(previous_state)

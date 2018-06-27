@@ -161,8 +161,7 @@ def run_module():
         argument_spec=argument_spec,
         required_one_of=required_one_of,
         mutually_exclusive=mutually_exclusive,
-        # not yet supported by nmstate
-        supports_check_mode=False
+        supports_check_mode=True
     )
 
     if module.params['aggregate']:
@@ -170,7 +169,7 @@ def run_module():
         module.fail_json(msg='Aggregate not yet supported', **result)
 
     previous_state = netinfo.show()
-    interfaces = previous_state['interfaces']
+    interfaces = deepcopy(previous_state['interfaces'])
     name = module.params['name']
 
     interface_state = get_interface_state(interfaces, name)
@@ -208,14 +207,15 @@ def run_module():
         result['debugfile'] = debugname
 
     if module.check_mode:
-        new_full_state = previous_state.update(new_partial_state)
+        new_full_state = deepcopy(previous_state)
+        new_full_state.update(new_partial_state)
         result['state'] = new_full_state
 
         # TODO: maybe compare only the state of the defined interfaces
         if previous_state != new_full_state:
             result['changed'] = True
 
-        return result
+        module.exit_json(**result)
     else:
         netapplier.apply(new_partial_state)
     current_state = netinfo.show()

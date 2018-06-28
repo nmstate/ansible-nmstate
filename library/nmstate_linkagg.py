@@ -25,6 +25,7 @@ from libnmstate import netinfo
 from ansible.module_utils.basic import AnsibleModule
 from ansible.module_utils.network.common.utils import remove_default_spec
 
+from ansible.module_utils.ansible_nmstate import get_interface_state
 from ansible.module_utils.ansible_nmstate import write_debug_state
 
 MODULE_NAME = "nmstate_linkagg"
@@ -173,6 +174,20 @@ def run_module():
     members = module.params['members']
     if not isinstance(members, list):
         members = [members]
+
+    # Fail when member state is missing
+    if module.params['state'] in ['up', 'present']:
+        missing = []
+        for member in members:
+            member_state = get_interface_state(previous_state['interfaces'],
+                                               member)
+            if not member_state:
+                missing.append(member)
+
+        if missing:
+            module.fail_json(msg='Did not find specified members in network '
+                             'state: ' + ', '.join(missing), **result)
+
     mode = module.params['mode']
     if mode in ['on', 'active']:
         mode = '802.3ad'

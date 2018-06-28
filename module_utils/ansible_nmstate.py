@@ -30,3 +30,15 @@ def write_debug_state(module_name, state):
     debugfile.write(json.dumps(state, indent=4))
 
     return debugname
+
+
+def get_interface_state(interfaces, name):
+    '''
+    Get the state for first interface with the specified name
+    '''
+    for interface_state in interfaces:
+        if interface_state['name'] == name:
+            break
+    else:
+        interface_state = None
+    return interface_state

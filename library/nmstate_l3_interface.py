@@ -25,7 +25,9 @@ from libnmstate import netinfo
 from ansible.module_utils.basic import AnsibleModule
 from ansible.module_utils.network.common.utils import remove_default_spec
 
+from ansible.module_utils.ansible_nmstate import get_interface_state
 from ansible.module_utils.ansible_nmstate import write_debug_state
+
 
 MODULE_NAME = "nmstate_l3_interface"
 
@@ -97,18 +99,6 @@ state:
     description: Network state after running the module
     type: dict
 '''
-
-
-def get_interface_state(interfaces, name):
-    '''
-    Get the state for first interface with the specified name
-    '''
-    for interface_state in interfaces:
-        if interface_state['name'] == name:
-            break
-    else:
-        interface_state = None
-    return interface_state
 
 
 def set_ipv4_addresses(interface_state, ipv4, purge=False):

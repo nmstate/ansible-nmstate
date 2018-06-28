@@ -32,7 +32,9 @@ sys.modules['ansible.module_utils.network.common'] = mock.Mock()
 sys.modules['ansible.module_utils.network.common.utils'] = mock.Mock()
 sys.modules['ansible.module_utils.network'] = mock.Mock()
 
-sys.modules['ansible.module_utils.ansible_nmstate'] = mock.Mock()
+sys.modules['ansible.module_utils.ansible_nmstate'] = \
+    __import__('ansible_nmstate')
+
 
 import nmstate_l3_interface as nli  # noqa: E402
 

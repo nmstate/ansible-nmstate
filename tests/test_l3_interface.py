@@ -67,3 +67,14 @@ def test_set_ipv4_addresses(base_state):
     new_state = nli.set_ipv4_addresses(new_state, ipv4, True)
     assert len(new_state["ipv4"]["addresses"]) == 1
     assert new_state["ipv4"]["addresses"][0]["ip"] == ipv4.split("/")[0]
+
+
+def test_set_ipv4_address_twice(base_state):
+    ipv4 = '198.51.100.31/24'
+    interface_state = nli.get_interface_state(base_state, 'eth0')
+    new_state = nli.set_ipv4_addresses(interface_state, ipv4, False)
+    assert len(new_state["ipv4"]["addresses"]) == 1
+    assert new_state["ipv4"]["addresses"][0]["ip"] == ipv4.split("/")[0]
+    new_state = nli.set_ipv4_addresses(interface_state, ipv4, False)
+    assert len(new_state["ipv4"]["addresses"]) == 1
+    assert new_state["ipv4"]["addresses"][0]["ip"] == ipv4.split("/")[0]

@@ -24,6 +24,7 @@ except ImportError:  # py2
     import mock
 
 import sys
+
 sys.modules['libnmstate'] = mock.Mock()
 sys.modules['ansible'] = mock.Mock()
 sys.modules['ansible.module_utils.basic'] = mock.Mock()
@@ -38,23 +39,12 @@ sys.modules['ansible.module_utils.ansible_nmstate'] = \
 
 import nmstate_l3_interface as nli  # noqa: E402
 
-BASE_STATE = [
-    {'name': 'eth0'},
-    {'name': 'eth1'}
-]
 
-
-def test_get_interface_state():
-    assert nli.get_interface_state(BASE_STATE, 'eth2') is None
-    assert nli.get_interface_state(BASE_STATE, 'eth0') == BASE_STATE[0]
-    assert nli.get_interface_state(BASE_STATE, 'eth1') == BASE_STATE[-1]
-
-
-def test_set_ipv4_addresses():
+def test_set_ipv4_addresses(base_state):
     # test ip addresses are from:
     # https://tools.ietf.org/html/rfc5737
     ipv4 = '198.51.100.31/24'
-    interface_state = nli.get_interface_state(BASE_STATE, 'eth0')
+    interface_state = nli.get_interface_state(base_state, 'eth0')
     new_state = nli.set_ipv4_addresses(interface_state, ipv4, False)
     assert len(new_state["ipv4"]["addresses"]) == 1
     assert new_state["ipv4"]["addresses"][0]["ip"] == ipv4.split("/")[0]

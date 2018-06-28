@@ -101,6 +101,12 @@ state:
 '''
 
 
+def create_ip_dict(ciddr_addr):
+    ip, prefix = ciddr_addr.split('/')
+    addr = {'ip': ip, 'prefix-length': int(prefix)}
+    return addr
+
+
 def set_ipv4_addresses(interface_state, ipv4, purge=False):
     ipconfig = interface_state.setdefault('ipv4', {})
     ipconfig['enabled'] = True
@@ -110,11 +116,28 @@ def set_ipv4_addresses(interface_state, ipv4, purge=False):
     else:
         addresses = ipconfig.setdefault('addresses', [])
 
-    ip, prefix = ipv4.split('/')
-    addr = {'ip': ip, 'prefix-length': int(prefix)}
+    addr = create_ip_dict(ipv4)
     if addr not in addresses:
         addresses.append(addr)
 
+    return interface_state
+
+
+def remove_ipv4_address(interface_state, ipv4):
+    ipconfig = interface_state.get('ipv4')
+    if not ipconfig:
+        return interface_state
+
+    addresses = ipconfig.get('addresses')
+
+    if not addresses:
+        return interface_state
+
+    addr = create_ip_dict(ipv4)
+    try:
+        addresses.remove(addr)
+    except ValueError:
+        pass
     return interface_state
 
 
@@ -176,10 +199,8 @@ def run_module():
     elif module.params['state'] == 'absent':
         if interface_state:
             if module.params['ipv4']:
-                # FIXME: Allow to remove single IP addresses
-                module.fail_json(
-                    msg='Removing individual addresses not supported',
-                    **result)
+                interface_state = remove_ipv4_address(interface_state,
+                                                      module.params['ipv4'])
             else:
                 ipconfig = interface_state.setdefault('ipv4', {})
                 ipconfig['enabled'] = False

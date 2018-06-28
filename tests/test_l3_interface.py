@@ -40,6 +40,12 @@ sys.modules['ansible.module_utils.ansible_nmstate'] = \
 import nmstate_l3_interface as nli  # noqa: E402
 
 
+def test_create_ip_dict_ipv4():
+    ipv4 = '198.51.100.31/24'
+    assert nli.create_ip_dict(ipv4) == {'ip': '198.51.100.31',
+                                        'prefix-length': 24}
+
+
 def test_set_ipv4_addresses(base_state):
     # test ip addresses are from:
     # https://tools.ietf.org/html/rfc5737
@@ -78,3 +84,55 @@ def test_set_ipv4_address_twice(base_state):
     new_state = nli.set_ipv4_addresses(interface_state, ipv4, False)
     assert len(new_state["ipv4"]["addresses"]) == 1
     assert new_state["ipv4"]["addresses"][0]["ip"] == ipv4.split("/")[0]
+
+
+def test_set_remove_ipv4_address_empty(base_state):
+    ipv4 = '198.51.100.31/24'
+    interface_state = nli.get_interface_state(base_state, 'eth0')
+    new_state = nli.remove_ipv4_address(interface_state, ipv4)
+
+    assert new_state == interface_state
+
+
+def test_set_remove_ipv4_address_not_existing(base_state):
+    ipv4 = '198.51.100.31/24'
+    interface_state = nli.get_interface_state(base_state, 'eth0')
+    new_state = nli.set_ipv4_addresses(interface_state, ipv4, False)
+    assert len(new_state["ipv4"]["addresses"]) == 1
+    assert new_state["ipv4"]["addresses"][0]["ip"] == ipv4.split("/")[0]
+
+    # add second IP address
+    ipv4_old = ipv4
+    ipv4 = '192.0.2.8/24'
+    new_state = nli.set_ipv4_addresses(new_state, ipv4, False)
+    assert len(new_state["ipv4"]["addresses"]) == 2
+    assert new_state["ipv4"]["addresses"][0]["ip"] == ipv4_old.split("/")[0]
+    assert new_state["ipv4"]["addresses"][1]["ip"] == ipv4.split("/")[0]
+
+    # remove non existing address
+    new_state = nli.remove_ipv4_address(new_state, '203.0.113.7/24')
+    assert len(new_state["ipv4"]["addresses"]) == 2
+    assert new_state["ipv4"]["addresses"][0]["ip"] == ipv4_old.split("/")[0]
+    assert new_state["ipv4"]["addresses"][1]["ip"] == ipv4.split("/")[0]
+
+    new_state = nli.remove_ipv4_address(new_state, ipv4_old)
+    assert len(new_state["ipv4"]["addresses"]) == 1
+    assert new_state["ipv4"]["addresses"][0]["ip"] == ipv4.split("/")[0]
+
+
+def test_set_and_remove_ipv4_address(base_state):
+    ipv4 = '198.51.100.31/24'
+    interface_state = nli.get_interface_state(base_state, 'eth0')
+    new_state = nli.set_ipv4_addresses(interface_state, ipv4, False)
+    assert len(new_state["ipv4"]["addresses"]) == 1
+    assert new_state["ipv4"]["addresses"][0]["ip"] == ipv4.split("/")[0]
+
+    new_state = nli.remove_ipv4_address(new_state, '203.0.113.7/24')
+    assert len(new_state["ipv4"]["addresses"]) == 1
+    assert new_state["ipv4"]["addresses"][0]["ip"] == ipv4.split("/")[0]
+
+    new_state = nli.remove_ipv4_address(new_state, ipv4)
+    assert len(new_state["ipv4"]["addresses"]) == 0
+
+    new_state_b = nli.remove_ipv4_address(new_state, ipv4)
+    assert new_state == new_state_b

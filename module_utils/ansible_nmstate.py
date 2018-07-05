@@ -17,10 +17,15 @@
 # along with ansible-nmstate.  If not, see <https://www.gnu.org/licenses/>.
 #
 
+from copy import deepcopy
 import json
 import os
 import tempfile
 import time
+
+
+from libnmstate import netapplier
+from libnmstate import netinfo
 
 
 def write_debug_state(module_name, state):
@@ -42,3 +47,46 @@ def get_interface_state(interfaces, name):
     else:
         interface_state = None
     return interface_state
+
+
+class AnsibleNMState(object):
+    def __init__(self, module, module_name):
+        self.previous_state = netinfo.show()
+        self.interfaces = deepcopy(self.previous_state['interfaces'])
+        self.module = module
+        self.params = module.params
+        self.result = dict(changed=False)
+        self.module_name = module_name
+
+    def run(self):
+        action = getattr(self, "handle_" + self.params['state'])
+        action()
+
+    def apply_partial_interface_state(self, interface_state):
+        interfaces = [interface_state]
+        new_partial_state = {'interfaces': interfaces}
+
+        if self.params.get('debug'):
+            self.result['previous_state'] = self.previous_state
+            self.result['new_partial_state'] = new_partial_state
+            self.result['debugfile'] = write_debug_state(self.module_name,
+                                                         new_partial_state)
+
+        if self.module.check_mode:
+            new_full_state = deepcopy(self.previous_state)
+            new_full_state.update(new_partial_state)
+            self.result['state'] = new_full_state
+
+            # TODO: maybe compare only the state of the defined interfaces
+            if self.previous_state != new_full_state:
+                self.result['changed'] = True
+
+            self.module.exit_json(**self.result)
+        else:
+            netapplier.apply(new_partial_state)
+        current_state = netinfo.show()
+        if current_state != self.previous_state:
+            self.result['changed'] = True
+        self.result['state'] = current_state
+
+        self.module.exit_json(**self.result)

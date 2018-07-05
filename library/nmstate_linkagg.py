@@ -19,16 +19,12 @@
 
 from copy import deepcopy
 
-from libnmstate import netapplier
-from libnmstate import netinfo
-
 from ansible.module_utils.basic import AnsibleModule
 from ansible.module_utils.network.common.utils import remove_default_spec
 
+from ansible.module_utils.ansible_nmstate import AnsibleNMState
 from ansible.module_utils.ansible_nmstate import get_interface_state
-from ansible.module_utils.ansible_nmstate import write_debug_state
 
-MODULE_NAME = "nmstate_linkagg"
 
 ANSIBLE_METADATA = {
     'metadata_version': '1.1',
@@ -123,6 +119,58 @@ state:
 '''
 
 
+class AnsibleNMStateLinkagg(AnsibleNMState):
+    def get_members(self):
+        members = self.params['members']
+        if not isinstance(members, list):
+            members = [members]
+
+        # Fail when member state is missing
+        if self.params['state'] in ['up', 'present']:
+            missing = []
+            for member in members:
+                member_state = get_interface_state(
+                    self.previous_state['interfaces'], member)
+                if not member_state:
+                    missing.append(member)
+
+            if missing:
+                self.module.fail_json(
+                    msg='Did not find specified members in network state: ' +
+                    ', '.join(missing), **self.result)
+
+        return members
+
+    def get_mode(self):
+        mode = self.params['mode']
+        if mode in ['on', 'active']:
+            mode = '802.3ad'
+        elif mode in ['passive']:
+            # passive mode is not supported on Linux:
+            # noqa:
+            # https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/7/html/networking_guide/sec-comparison_of_network_teaming_to_bonding
+            self.module.fail_json(msg='passive mode is not supported on Linux',
+                                  **self.result)
+        return mode
+
+    def run(self):
+        members = self.get_members()
+        mode = self.get_mode()
+
+        link_aggregation = {
+            'mode': mode,
+            'options': {},  # FIXME: add support for options?
+            'slaves': members,
+        }
+        interface_state = {
+            'name': self.params['name'],
+            'state': self.params['state'],
+            'type': 'bond',
+            'link-aggregation': link_aggregation,
+        }
+        self.apply_partial_interface_state(interface_state)
+
+
 def run_module():
     element_spec = dict(
         members=dict(type='list'),
@@ -156,10 +204,6 @@ def run_module():
     required_one_of = [['name', 'aggregate']]
     mutually_exclusive = [['name', 'aggregate']]
 
-    result = dict(
-        changed=False,
-    )
-
     module = AnsibleModule(
         argument_spec=argument_spec,
         required_one_of=required_one_of,
@@ -167,73 +211,13 @@ def run_module():
         supports_check_mode=True
     )
 
+    nmstate_module = AnsibleNMStateLinkagg(module, "nmstate_linkagg")
     if module.params['aggregate']:
-        module.fail_json(msg='Aggregate not yet supported', **result)
+        # FIXME implement aggregate
+        module.fail_json(msg='Aggregate not yet supported',
+                         **nmstate_module.result)
 
-    previous_state = netinfo.show()
-    members = module.params['members']
-    if not isinstance(members, list):
-        members = [members]
-
-    # Fail when member state is missing
-    if module.params['state'] in ['up', 'present']:
-        missing = []
-        for member in members:
-            member_state = get_interface_state(previous_state['interfaces'],
-                                               member)
-            if not member_state:
-                missing.append(member)
-
-        if missing:
-            module.fail_json(msg='Did not find specified members in network '
-                             'state: ' + ', '.join(missing), **result)
-
-    mode = module.params['mode']
-    if mode in ['on', 'active']:
-        mode = '802.3ad'
-    elif mode in ['passive']:
-        # passive mode is not supported on Linux:
-        # noqa:
-        # https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/7/html/networking_guide/sec-comparison_of_network_teaming_to_bonding
-        module.fail_json(msg='passive mode is not supported on Linux',
-                         **result)
-
-    link_aggregation = {'mode': mode,
-                        'options': {},  # FIXME: add support for options?
-                        'slaves': members,
-                        }
-    interface_state = {'name': module.params['name'],
-                       'state': module.params['state'],
-                       'type': 'bond',
-                       'link-aggregation': link_aggregation,
-                       }
-    interfaces = []
-    interfaces.append(interface_state)
-    new_partial_state = {'interfaces': interfaces}
-
-    if module.params.get('debug'):
-        result['previous_state'] = previous_state
-        result['new_partial_state'] = new_partial_state
-        result['debugfile'] = write_debug_state(MODULE_NAME, new_partial_state)
-
-    if module.check_mode:
-        new_full_state = deepcopy(previous_state)
-        new_full_state.update(new_partial_state)
-        result['state'] = new_full_state
-
-        # TODO: maybe compare only the state of the defined interfaces
-        if previous_state != new_full_state:
-            result['changed'] = True
-
-        module.exit_json(**result)
-    else:
-        netapplier.apply(new_partial_state)
-    current_state = netinfo.show()
-    if current_state != previous_state:
-        result['changed'] = True
-    result['state'] = current_state
-
-    module.exit_json(**result)
+    nmstate_module.run()
 
 
 def main():

@@ -19,17 +19,12 @@
 
 from copy import deepcopy
 
-from libnmstate import netapplier
-from libnmstate import netinfo
-
 from ansible.module_utils.basic import AnsibleModule
 from ansible.module_utils.network.common.utils import remove_default_spec
 
+from ansible.module_utils.ansible_nmstate import AnsibleNMState
 from ansible.module_utils.ansible_nmstate import get_interface_state
-from ansible.module_utils.ansible_nmstate import write_debug_state
 
-
-MODULE_NAME = "nmstate_l3_interface"
 
 ANSIBLE_METADATA = {
     'metadata_version': '1.1',
@@ -141,6 +136,35 @@ def remove_ipv4_address(interface_state, ipv4):
     return interface_state
 
 
+class AnsibleNMStateL3Interface(AnsibleNMState):
+    def handle_present(self):
+        name = self.params['name']
+
+        interface_state = get_interface_state(self.interfaces, name)
+
+        if not interface_state:
+            self.module.fail_json(msg='Interface "%s" not found' % (name,),
+                                  **self.result)
+
+        interface_state = set_ipv4_addresses(interface_state,
+                                             self.params['ipv4'],
+                                             purge=self.params['purge'])
+        self.apply_partial_interface_state(interface_state)
+
+    def handle_absent(self):
+        name = self.params['name']
+
+        interface_state = get_interface_state(self.interfaces, name)
+        if interface_state:
+            if self.params['ipv4']:
+                interface_state = remove_ipv4_address(interface_state,
+                                                      self.params['ipv4'])
+            else:
+                ipconfig = interface_state.setdefault('ipv4', {})
+                ipconfig['enabled'] = False
+        self.apply_partial_interface_state(interface_state)
+
+
 def run_module():
     element_spec = dict(
         name=dict(),
@@ -168,8 +192,6 @@ def run_module():
     required_one_of = [['name', 'aggregate']]
     mutually_exclusive = [['name', 'aggregate']]
 
-    result = dict(changed=False)
-
     module = AnsibleModule(
         argument_spec=argument_spec,
         required_one_of=required_one_of,
@@ -177,62 +199,13 @@ def run_module():
         supports_check_mode=True
     )
 
+    nmstate_module = AnsibleNMStateL3Interface(module, "nmstate_l3_interface")
     if module.params['aggregate']:
         # FIXME implement aggregate
-        module.fail_json(msg='Aggregate not yet supported', **result)
+        module.fail_json(msg='Aggregate not yet supported',
+                         **nmstate_module.result)
 
-    previous_state = netinfo.show()
-    interfaces = deepcopy(previous_state['interfaces'])
-    name = module.params['name']
-
-    interface_state = get_interface_state(interfaces, name)
-
-    if module.params['state'] == 'present':
-        if not interface_state:
-            module.fail_json(msg='Interface "%s" not found' % (name,),
-                             **result)
-
-        interface_state = set_ipv4_addresses(interface_state,
-                                             module.params['ipv4'],
-                                             purge=module.params['purge'])
-
-    elif module.params['state'] == 'absent':
-        if interface_state:
-            if module.params['ipv4']:
-                interface_state = remove_ipv4_address(interface_state,
-                                                      module.params['ipv4'])
-            else:
-                ipconfig = interface_state.setdefault('ipv4', {})
-                ipconfig['enabled'] = False
-
-        # assume success when interface to configure is not present
-
-    interfaces = [interface_state]
-    new_partial_state = {'interfaces': interfaces}
-
-    if module.params.get('debug'):
-        result['previous_state'] = previous_state
-        result['new_partial_state'] = new_partial_state
-        result['debugfile'] = write_debug_state(MODULE_NAME, new_partial_state)
-
-    if module.check_mode:
-        new_full_state = deepcopy(previous_state)
-        new_full_state.update(new_partial_state)
-        result['state'] = new_full_state
-
-        # TODO: maybe compare only the state of the defined interfaces
-        if previous_state != new_full_state:
-            result['changed'] = True
-
-        module.exit_json(**result)
-    else:
-        netapplier.apply(new_partial_state)
-    current_state = netinfo.show()
-    if current_state != previous_state:
-        result['changed'] = True
-    result['state'] = current_state
-
-    module.exit_json(**result)
+    nmstate_module.run()
 
 
 def main():

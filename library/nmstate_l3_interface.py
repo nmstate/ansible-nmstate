@@ -178,7 +178,7 @@ def run_module():
     )
 
     if module.params['aggregate']:
-        # FIXME impelement aggregate
+        # FIXME implement aggregate
         module.fail_json(msg='Aggregate not yet supported', **result)
 
     previous_state = netinfo.show()

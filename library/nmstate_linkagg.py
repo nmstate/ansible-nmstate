@@ -27,12 +27,12 @@ from ansible.module_utils.ansible_nmstate import get_interface_state
 
 
 ANSIBLE_METADATA = {
-    'metadata_version': '1.1',
-    'status': ['preview'],
-    'supported_by': 'community'
+    "metadata_version": "1.1",
+    "status": ["preview"],
+    "supported_by": "community",
 }
 
-DOCUMENTATION = '''
+DOCUMENTATION = """
 ---
 module: nmstate_linkagg
 version_added: "2.6"
@@ -77,9 +77,9 @@ options:
       - State of the link aggregation group.
     default: present
     choices: ['present', 'absent', 'up', 'down']
-'''
+"""
 
-EXAMPLES = '''
+EXAMPLES = """
 - name: Take bond interface down
   nmstate_linkagg:
       name=bond0
@@ -110,47 +110,51 @@ EXAMPLES = '''
       - name: bond0
       - name: bond1
     state: absent
-'''
+"""
 
-RETURN = '''
+RETURN = """
 state:
     description: Network state after running the module
     type: dict
-'''
+"""
 
 
 class AnsibleNMStateLinkagg(AnsibleNMState):
     def get_members(self):
-        members = self.params['members']
+        members = self.params["members"]
         if not isinstance(members, list):
             members = [members]
 
         # Fail when member state is missing
-        if self.params['state'] in ['up', 'present']:
+        if self.params["state"] in ["up", "present"]:
             missing = []
             for member in members:
                 member_state = get_interface_state(
-                    self.previous_state['interfaces'], member)
+                    self.previous_state["interfaces"], member
+                )
                 if not member_state:
                     missing.append(member)
 
             if missing:
                 self.module.fail_json(
-                    msg='Did not find specified members in network state: ' +
-                    ', '.join(missing), **self.result)
+                    msg="Did not find specified members in network state: "
+                    + ", ".join(missing),
+                    **self.result
+                )
 
         return members
 
     def get_mode(self):
-        mode = self.params['mode']
-        if mode in ['on', 'active']:
-            mode = '802.3ad'
-        elif mode in ['passive']:
+        mode = self.params["mode"]
+        if mode in ["on", "active"]:
+            mode = "802.3ad"
+        elif mode in ["passive"]:
             # passive mode is not supported on Linux:
             # noqa:
             # https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/7/html/networking_guide/sec-comparison_of_network_teaming_to_bonding
-            self.module.fail_json(msg='passive mode is not supported on Linux',
-                                  **self.result)
+            self.module.fail_json(
+                msg="passive mode is not supported on Linux", **self.result
+            )
         return mode
 
     def run(self):
@@ -158,64 +162,73 @@ class AnsibleNMStateLinkagg(AnsibleNMState):
         mode = self.get_mode()
 
         link_aggregation = {
-            'mode': mode,
-            'options': {},  # FIXME: add support for options?
-            'slaves': members,
+            "mode": mode,
+            "options": {},  # FIXME: add support for options?
+            "slaves": members,
         }
         interface_state = {
-            'name': self.params['name'],
-            'state': self.params['state'],
-            'type': 'bond',
-            'link-aggregation': link_aggregation,
+            "name": self.params["name"],
+            "state": self.params["state"],
+            "type": "bond",
+            "link-aggregation": link_aggregation,
         }
         self.apply_partial_interface_state(interface_state)
 
 
 def run_module():
     element_spec = dict(
-        members=dict(type='list'),
-        min_links=dict(type='int'),
+        members=dict(type="list"),
+        min_links=dict(type="int"),
         # net_linkagg only knows on, active and passive
         # on and active is 802.3ad on Linux, passive is not supported
-        mode=dict(choices=['on', 'active', 'passive', 'balance-rr',
-                           'active-backup', 'balance-xor', 'broadcast',
-                           '802.3ad', 'balance-tlb', 'balance-alb'],
-                  default='on'),
+        mode=dict(
+            choices=[
+                "on",
+                "active",
+                "passive",
+                "balance-rr",
+                "active-backup",
+                "balance-xor",
+                "broadcast",
+                "802.3ad",
+                "balance-tlb",
+                "balance-alb",
+            ],
+            default="on",
+        ),
         name=dict(),
-        state=dict(default='present',
-                   choices=['present', 'absent', 'up', 'down'])
+        state=dict(default="present", choices=["present", "absent", "up", "down"]),
     )
 
     aggregate_spec = deepcopy(element_spec)
-    aggregate_spec['name'] = dict(required=True)
+    aggregate_spec["name"] = dict(required=True)
 
     # remove default in aggregate spec, to handle common arguments
     remove_default_spec(aggregate_spec)
 
     argument_spec = dict(
-        aggregate=dict(type='list', elements='dict', options=aggregate_spec),
-        purge=dict(default=False, type='bool'),
+        aggregate=dict(type="list", elements="dict", options=aggregate_spec),
+        purge=dict(default=False, type="bool"),
         # not in net_* specification
-        debug=dict(default=False, type='bool'),
+        debug=dict(default=False, type="bool"),
     )
 
     argument_spec.update(element_spec)
 
-    required_one_of = [['name', 'aggregate']]
-    mutually_exclusive = [['name', 'aggregate']]
+    required_one_of = [["name", "aggregate"]]
+    mutually_exclusive = [["name", "aggregate"]]
 
     module = AnsibleModule(
         argument_spec=argument_spec,
         required_one_of=required_one_of,
         mutually_exclusive=mutually_exclusive,
-        supports_check_mode=True
+        supports_check_mode=True,
     )
 
     nmstate_module = AnsibleNMStateLinkagg(module, "nmstate_linkagg")
-    if module.params['aggregate']:
+    if module.params["aggregate"]:
         # FIXME implement aggregate
-        module.fail_json(msg='Aggregate not yet supported',
-                         **nmstate_module.result)
+        module.fail_json(msg="Aggregate not yet supported", **nmstate_module.result)
 
     nmstate_module.run()
 
@@ -224,5 +237,5 @@ def main():
     run_module()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

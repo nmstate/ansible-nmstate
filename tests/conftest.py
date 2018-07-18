@@ -22,8 +22,5 @@ import pytest
 
 @pytest.fixture
 def base_state():
-    BASE_STATE = [
-        {'name': 'eth0'},
-        {'name': 'eth1'}
-    ]
+    BASE_STATE = [{"name": "eth0"}, {"name": "eth1"}]
     return BASE_STATE

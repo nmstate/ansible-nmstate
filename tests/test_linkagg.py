@@ -25,15 +25,16 @@ except ImportError:  # py2
     import mock
 
 import sys
-sys.modules['libnmstate'] = mock.Mock()
-sys.modules['ansible'] = mock.Mock()
-sys.modules['ansible.module_utils.basic'] = mock.Mock()
-sys.modules['ansible.module_utils'] = mock.Mock()
-sys.modules['ansible.module_utils.network.common'] = mock.Mock()
-sys.modules['ansible.module_utils.network.common.utils'] = mock.Mock()
-sys.modules['ansible.module_utils.network'] = mock.Mock()
 
-sys.modules['ansible.module_utils.ansible_nmstate'] = mock.Mock()
+sys.modules["libnmstate"] = mock.Mock()
+sys.modules["ansible"] = mock.Mock()
+sys.modules["ansible.module_utils.basic"] = mock.Mock()
+sys.modules["ansible.module_utils"] = mock.Mock()
+sys.modules["ansible.module_utils.network.common"] = mock.Mock()
+sys.modules["ansible.module_utils.network.common.utils"] = mock.Mock()
+sys.modules["ansible.module_utils.network"] = mock.Mock()
+
+sys.modules["ansible.module_utils.ansible_nmstate"] = mock.Mock()
 
 import nmstate_linkagg as nla  # noqa: E402
 

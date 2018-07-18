@@ -21,6 +21,6 @@ from ansible_nmstate import get_interface_state
 
 
 def test_get_interface_state(base_state):
-    assert get_interface_state(base_state, 'eth2') is None
-    assert get_interface_state(base_state, 'eth0') == base_state[0]
-    assert get_interface_state(base_state, 'eth1') == base_state[-1]
+    assert get_interface_state(base_state, "eth2") is None
+    assert get_interface_state(base_state, "eth0") == base_state[0]
+    assert get_interface_state(base_state, "eth1") == base_state[-1]

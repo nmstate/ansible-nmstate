@@ -2,6 +2,7 @@
 - hosts: all
   vars:
     - ansible_network_os: nmstate
+  become: True
   tasks:
     - net_linkagg:
         name: web-bond

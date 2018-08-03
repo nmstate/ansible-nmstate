@@ -22,5 +22,10 @@ import pytest
 
 @pytest.fixture
 def base_state():
-    BASE_STATE = [{"name": "eth0"}, {"name": "eth1"}]
+    BASE_STATE = {
+        "interfaces": [
+            {"name": "eth0", "type": "ethernet"},
+            {"name": "eth1", "type": "ethernet"},
+        ]
+    }
     return BASE_STATE

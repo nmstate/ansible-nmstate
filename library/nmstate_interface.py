@@ -52,8 +52,36 @@ state:
 class AnsibleNMStateInterface(AnsibleNMState):
     def run(self):
         name = self.params["name"]
-        interface_state = get_interface_state(self.interfaces, name)
-        interface_state["state"] = self.params["state"]
+        full_interface_state = get_interface_state(self.interfaces, name)
+
+        interface_state = {"name": name, "type": full_interface_state["type"]}
+
+        state = self.params["state"]
+
+        # "present" does not need to be mentioned in the state sent to nmstate
+        if state != "present":
+            interface_state["state"] = state
+
+        if self.params["mtu"]:
+            interface_state["mtu"] = int(self.params["mtu"])
+
+        ethernet_state = {}
+
+        if self.params["duplex"]:
+            ethernet_state["auto-negotiation"] = self.params["duplex"] == "auto"
+
+        if self.params["duplex"] and self.params["duplex"] != "auto":
+            ethernet_state["duplex"] = self.params["duplex"]
+
+        if self.params["speed"]:
+            ethernet_state["speed"] = int(self.params["speed"])
+
+        if ethernet_state:
+            interface_state["ethernet"] = ethernet_state
+
+        if self.params["description"] is not None:
+            interface_state["description"] = self.params["description"]
+
         self.apply_partial_interface_state(interface_state)
 
 
@@ -80,6 +108,8 @@ def run_module():
     argument_spec = dict(
         aggregate=dict(type="list", elements="dict", options=aggregate_spec),
         purge=dict(default=False, type="bool"),
+        # not in net_* specification
+        debug=dict(default=False, type="bool"),
     )
 
     argument_spec.update(element_spec)

@@ -64,7 +64,10 @@ class AnsibleNMState(object):
         action()
 
     def apply_partial_interface_state(self, interface_state):
-        interfaces = [interface_state]
+        if isinstance(interface_state, list):
+            interfaces = interface_state
+        else:
+            interfaces = [interface_state]
         new_partial_state = {"interfaces": interfaces}
 
         if self.params.get("debug"):

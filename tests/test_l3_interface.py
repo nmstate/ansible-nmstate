@@ -23,20 +23,13 @@ try:
 except ImportError:  # py2
     import mock
 
-import sys
 
-sys.modules["libnmstate"] = mock.Mock()
-sys.modules["ansible"] = mock.Mock()
-sys.modules["ansible.module_utils.basic"] = mock.Mock()
-sys.modules["ansible.module_utils"] = mock.Mock()
-sys.modules["ansible.module_utils.network.common"] = mock.Mock()
-sys.modules["ansible.module_utils.network.common.utils"] = mock.Mock()
-sys.modules["ansible.module_utils.network"] = mock.Mock()
-
-sys.modules["ansible.module_utils.ansible_nmstate"] = __import__("ansible_nmstate")
+from testlib import ANSIBLE_MOCK_MODULES
 
 
-import nmstate_l3_interface as nli  # noqa: E402
+with mock.patch.dict("sys.modules", ANSIBLE_MOCK_MODULES):
+    # E402 module level import not at top of file
+    import nmstate_l3_interface as nli  # noqa: E402
 
 
 def test_create_ip_dict_ipv4():

@@ -17,20 +17,20 @@
 # along with ansible-nmstate.  If not, see <https://www.gnu.org/licenses/>.
 #
 
-""" unit tests for nmstate_linkagg.py """
-
+""" common code for testing the nmstate Ansible modules """
 try:
     from unittest import mock
 except ImportError:  # py2
     import mock
 
-from testlib import ANSIBLE_MOCK_MODULES
+ANSIBLE_MOCK_MODULES = {}
+ANSIBLE_MOCK_MODULES["ansible"] = mock.Mock()
+ANSIBLE_MOCK_MODULES["ansible.module_utils.basic"] = mock.Mock()
+ANSIBLE_MOCK_MODULES["ansible.module_utils"] = mock.Mock()
+ANSIBLE_MOCK_MODULES["ansible.module_utils.network.common"] = mock.Mock()
+ANSIBLE_MOCK_MODULES["ansible.module_utils.network.common.utils"] = mock.Mock()
+ANSIBLE_MOCK_MODULES["ansible.module_utils.network"] = mock.Mock()
 
-
-with mock.patch.dict("sys.modules", ANSIBLE_MOCK_MODULES):
-    # E402 module level import not at top of file
-    import nmstate_linkagg as nla  # noqa: E402
-
-
-def test_import_succeeded():
-    assert nla
+ANSIBLE_MOCK_MODULES["ansible.module_utils.ansible_nmstate"] = __import__(
+    "ansible_nmstate"
+)

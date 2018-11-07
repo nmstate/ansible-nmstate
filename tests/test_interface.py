@@ -24,18 +24,10 @@ try:
 except ImportError:  # py2
     import mock
 
-mock_modules = {}
-mock_modules["ansible"] = mock.Mock()
-mock_modules["ansible.module_utils.basic"] = mock.Mock()
-mock_modules["ansible.module_utils"] = mock.Mock()
-mock_modules["ansible.module_utils.network.common"] = mock.Mock()
-mock_modules["ansible.module_utils.network.common.utils"] = mock.Mock()
-mock_modules["ansible.module_utils.network"] = mock.Mock()
-
-mock_modules["ansible.module_utils.ansible_nmstate"] = __import__("ansible_nmstate")
+from testlib import ANSIBLE_MOCK_MODULES
 
 
-with mock.patch.dict("sys.modules", mock_modules):
+with mock.patch.dict("sys.modules", ANSIBLE_MOCK_MODULES):
     # E402 module level import not at top of file
     import nmstate_interface as nif  # noqa: E402
 

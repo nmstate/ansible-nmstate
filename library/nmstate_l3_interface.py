@@ -96,84 +96,141 @@ state:
 """
 
 
+class AnsibleNMStateL3Interface(AnsibleNMState):
+    def run(self):
+        if self.params["name"]:
+            interface_config = collect_settings([self.params])
+        elif self.params["aggregate"]:
+            interface_config = collect_settings(self.params["aggregate"])
+        else:
+            self.module.fail_json(
+                msg="name or aggregate parameter missing", **self.result
+            )
+
+        interface_state = []
+        for interface, config in interface_config.items():
+            if self.params["state"] == "absent":
+                new_state = self._handle_absent_interface(interface, config)
+            else:
+                new_state = self._handle_present_interface(interface, config)
+
+            if new_state:
+                interface_state.append(new_state)
+
+        if interface_state:
+            self.apply_partial_interface_state(interface_state)
+
+        else:
+            self.result["changed"] = False
+            self.module.exit_json(**self.result)
+
+    def _handle_present_interface(self, name, config):
+        full_interface_state = get_interface_state(self.interfaces, name)
+        if not full_interface_state:
+            self.module.fail_json(
+                msg='Interface "%s" not found' % (name,), **self.result
+            )
+
+        interface_state = {
+            "name": name,
+            "type": full_interface_state["type"],
+            "ipv4": full_interface_state.get("ipv4", {}),
+            "ipv6": full_interface_state.get("ipv6", {}),
+            "state": "up",
+        }
+
+        for protocol in ("ipv4", "ipv6"):
+            ipconfig = interface_state[protocol]
+            addresses = config.get(protocol, [])
+
+            if self.params["purge"]:
+                updated_ipconfig = set_addresses(ipconfig, addresses)
+            elif addresses:
+                updated_ipconfig = add_addresses(ipconfig, addresses)
+
+            interface_state[protocol] = updated_ipconfig
+
+        return interface_state
+
+    def _handle_absent_interface(self, name, config):
+        full_interface_state = get_interface_state(self.interfaces, name)
+        if full_interface_state:
+            interface_state = {
+                "name": name,
+                "type": full_interface_state["type"],
+                "ipv4": full_interface_state.get("ipv4", {}),
+                "ipv6": full_interface_state.get("ipv6", {}),
+            }
+
+            for protocol in ("ipv4", "ipv6"):
+                ipconfig = interface_state.setdefault(protocol, {})
+                addresses = config.get(protocol)
+
+                if addresses:
+                    ipconfig.update(remove_addresses(ipconfig, addresses))
+                else:
+                    # FIXME: Disabling ipv6 is not supported in nmstate
+                    if protocol != "ipv6":
+                        ipconfig["enabled"] = False
+
+            return interface_state
+
+
+def collect_settings(aggregate):
+    interface_config = {}
+    for setting in aggregate:
+        interface = setting["name"]
+        config = interface_config.setdefault(interface, {})
+        for protocol in ("ipv4", "ipv6"):
+            address = setting[protocol]
+            if address:
+                config.setdefault(protocol, []).append(address)
+    return interface_config
+
+
+def set_addresses(ipconfig, new_addresses):
+    ipconfig["address"] = []
+    return add_addresses(ipconfig, new_addresses)
+
+
+def add_addresses(ipconfig, new_addresses):
+    ipconfig["enabled"] = True
+    addresses = ipconfig.setdefault("address", [])
+    new_addresses = (create_ip_dict(a) for a in new_addresses)
+
+    for addr in new_addresses:
+        if addr not in addresses:
+            addresses.append(addr)
+
+    return ipconfig
+
+
+def remove_addresses(ipconfig, addresses):
+    if not ipconfig:
+        return ipconfig
+
+    current_addresses = ipconfig.get("address")
+
+    if not current_addresses:
+        return ipconfig
+
+    for address in addresses:
+        addr = create_ip_dict(address)
+        try:
+            current_addresses.remove(addr)
+        except ValueError:
+            pass
+    return ipconfig
+
+
 def create_ip_dict(ciddr_addr):
     ip, prefix = ciddr_addr.split("/")
     addr = {"ip": ip, "prefix-length": int(prefix)}
     return addr
 
 
-def set_ipv4_addresses(interface_state, ipv4, purge=False):
-    ipconfig = interface_state.setdefault("ipv4", {})
-    ipconfig["enabled"] = True
-    if purge:
-        addresses = []
-        ipconfig["addresses"] = addresses
-    else:
-        addresses = ipconfig.setdefault("addresses", [])
-
-    addr = create_ip_dict(ipv4)
-    if addr not in addresses:
-        addresses.append(addr)
-
-    return interface_state
-
-
-def remove_ipv4_address(interface_state, ipv4):
-    ipconfig = interface_state.get("ipv4")
-    if not ipconfig:
-        return interface_state
-
-    addresses = ipconfig.get("addresses")
-
-    if not addresses:
-        return interface_state
-
-    addr = create_ip_dict(ipv4)
-    try:
-        addresses.remove(addr)
-    except ValueError:
-        pass
-    return interface_state
-
-
-class AnsibleNMStateL3Interface(AnsibleNMState):
-    def handle_present(self):
-        name = self.params["name"]
-
-        interface_state = get_interface_state(self.interfaces, name)
-
-        if not interface_state:
-            self.module.fail_json(
-                msg='Interface "%s" not found' % (name,), **self.result
-            )
-
-        interface_state = set_ipv4_addresses(
-            interface_state, self.params["ipv4"], purge=self.params["purge"]
-        )
-        self.apply_partial_interface_state(interface_state)
-
-    def handle_absent(self):
-        name = self.params["name"]
-
-        interface_state = get_interface_state(self.interfaces, name)
-        if interface_state:
-            if self.params["ipv4"]:
-                interface_state = remove_ipv4_address(
-                    interface_state, self.params["ipv4"]
-                )
-            else:
-                ipconfig = interface_state.setdefault("ipv4", {})
-                ipconfig["enabled"] = False
-        self.apply_partial_interface_state(interface_state)
-
-
 def run_module():
-    element_spec = dict(
-        name=dict(),
-        ipv4=dict(),
-        ipv6=dict(),
-        state=dict(default="present", choices=["present", "absent"]),
-    )
+    element_spec = dict(name=dict(), ipv4=dict(), ipv6=dict())
 
     aggregate_spec = deepcopy(element_spec)
     aggregate_spec["name"] = dict(required=True)
@@ -184,6 +241,7 @@ def run_module():
     argument_spec = dict(
         aggregate=dict(type="list", elements="dict", options=aggregate_spec),
         purge=dict(default=False, type="bool"),
+        state=dict(default="present", choices=["present", "absent"]),
         # not in net_* specification
         debug=dict(default=False, type="bool"),
     )
@@ -201,9 +259,6 @@ def run_module():
     )
 
     nmstate_module = AnsibleNMStateL3Interface(module, "nmstate_l3_interface")
-    if module.params["aggregate"]:
-        # FIXME implement aggregate
-        module.fail_json(msg="Aggregate not yet supported", **nmstate_module.result)
 
     nmstate_module.run()
 

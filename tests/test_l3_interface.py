@@ -142,6 +142,21 @@ def test_collect_single_settings():
     assert interface_config == expected_config
 
 
+def test_collect_multiple_ipv4_settings():
+    aggregate = [
+        {"name": "eth0", "ipv4": "192.0.2.14/30", "ipv6": None},
+        {"name": "eth1", "ipv4": "192.0.2.15/30", "ipv6": None},
+        {"name": "eth0", "ipv4": "192.0.2.12/30", "ipv6": None},
+    ]
+    expected_config = {
+        "eth0": {"ipv4": ["192.0.2.14/30", "192.0.2.12/30"]},
+        "eth1": {"ipv4": ["192.0.2.15/30"]},
+    }
+    interface_config = nli.collect_settings(aggregate)
+
+    assert interface_config == expected_config
+
+
 def test_single_addresses_present(base_state):
     module_params = dict(
         name="eth0",
@@ -207,6 +222,38 @@ def test_aggregate_present(base_state):
             "address": [{"ip": "2001:db8::1", "prefix-length": 32}],
             "enabled": True,
         },
+    }
+
+    assert relevant_interface_state == expected_interface_state
+    assert len(applied_state["interfaces"]) == 1
+
+
+def test_aggregate_present_ipv4(base_state):
+    module_params = dict(
+        name=None,
+        state="present",
+        aggregate=[dict(name="eth0", ipv4="198.51.100.31/24", ipv6=None)],
+        purge=False,
+    )
+
+    applied_state = run_module(module_params, base_state)
+    interface_state = applied_state["interfaces"][0]
+
+    relevant_interface_state = {
+        "name": interface_state["name"],
+        "state": interface_state["state"],
+        "ipv4": interface_state["ipv4"],
+        "ipv6": interface_state["ipv6"],
+    }
+
+    expected_interface_state = {
+        "name": "eth0",
+        "state": "up",
+        "ipv4": {
+            "address": [{"ip": "198.51.100.31", "prefix-length": 24}],
+            "enabled": True,
+        },
+        "ipv6": {},
     }
 
     assert relevant_interface_state == expected_interface_state

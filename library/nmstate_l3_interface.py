@@ -139,16 +139,16 @@ class AnsibleNMStateL3Interface(AnsibleNMState):
             "state": "up",
         }
 
-        for protocol in ("ipv4", "ipv6"):
-            ipconfig = interface_state[protocol]
-            addresses = config.get(protocol, [])
+        for family in ("ipv4", "ipv6"):
+            ipconfig = interface_state[family]
+            addresses = config.get(family, [])
 
             if self.params["purge"]:
                 updated_ipconfig = set_addresses(ipconfig, addresses)
-                interface_state[protocol] = updated_ipconfig
+                interface_state[family] = updated_ipconfig
             elif addresses:
                 updated_ipconfig = add_addresses(ipconfig, addresses)
-                interface_state[protocol] = updated_ipconfig
+                interface_state[family] = updated_ipconfig
 
         return interface_state
 
@@ -162,9 +162,9 @@ class AnsibleNMStateL3Interface(AnsibleNMState):
                 "ipv6": full_interface_state.get("ipv6", {}),
             }
 
-            for protocol in ("ipv4", "ipv6"):
-                ipconfig = interface_state.setdefault(protocol, {})
-                addresses = config.get(protocol)
+            for family in ("ipv4", "ipv6"):
+                ipconfig = interface_state.setdefault(family, {})
+                addresses = config.get(family)
 
                 if addresses:
                     ipconfig.update(remove_addresses(ipconfig, addresses))
@@ -176,7 +176,7 @@ class AnsibleNMStateL3Interface(AnsibleNMState):
                 # if no ip addresses remain, disable the family
                 if not ipconfig.get("address"):
                     # FIXME: Disabling ipv6 is not supported in nmstate
-                    if protocol != "ipv6":
+                    if family != "ipv6":
                         ipconfig["enabled"] = False
 
             return interface_state
@@ -187,10 +187,10 @@ def collect_settings(aggregate):
     for setting in aggregate:
         interface = setting["name"]
         config = interface_config.setdefault(interface, {})
-        for protocol in ("ipv4", "ipv6"):
-            address = setting[protocol]
+        for family in ("ipv4", "ipv6"):
+            address = setting[family]
             if address:
-                config.setdefault(protocol, []).append(address)
+                config.setdefault(family, []).append(address)
     return interface_config
 
 

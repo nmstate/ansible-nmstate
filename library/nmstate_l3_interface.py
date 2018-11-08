@@ -168,7 +168,13 @@ class AnsibleNMStateL3Interface(AnsibleNMState):
 
                 if addresses:
                     ipconfig.update(remove_addresses(ipconfig, addresses))
-                else:
+
+                # handle state:absent, ipv4:None, ipv6:None
+                elif not (config.get("ipv4") or config.get("ipv6")):
+                    ipconfig.update(set_addresses(ipconfig, []))
+
+                # if no ip addresses remain, disable the family
+                if not ipconfig.get("address"):
                     # FIXME: Disabling ipv6 is not supported in nmstate
                     if protocol != "ipv6":
                         ipconfig["enabled"] = False

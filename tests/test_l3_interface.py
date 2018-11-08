@@ -295,6 +295,50 @@ def test_aggregate_present_single_purge(base_state):
     assert len(applied_state["interfaces"]) == 1
 
 
+def test_absent_all(base_state):
+    module_params = dict(
+        name="eth0", state="absent", aggregate=None, ipv4=None, ipv6=None, purge=False
+    )
+
+    base_state["interfaces"][0].update(
+        {
+            "ipv4": {
+                "address": [
+                    {"ip": "198.51.100.31", "prefix-length": 24},
+                    {"ip": "198.51.100.32", "prefix-length": 24},
+                ],
+                "enabled": True,
+            },
+            "ipv6": {
+                "address": [
+                    {"ip": "2001:db8::1", "prefix-length": 32},
+                    {"ip": "2001:db8::2", "prefix-length": 32},
+                ],
+                "enabled": True,
+            },
+        }
+    )
+
+    applied_state = run_module(module_params, base_state)
+    interface_state = applied_state["interfaces"][0]
+
+    relevant_interface_state = {
+        "name": interface_state["name"],
+        "ipv4": interface_state["ipv4"],
+        "ipv6": interface_state["ipv6"],
+    }
+
+    expected_interface_state = {
+        "name": "eth0",
+        "ipv4": {"address": [], "enabled": False},
+        "ipv6": {"address": [], "enabled": True},
+    }
+
+    assert relevant_interface_state == expected_interface_state
+    assert "state" not in interface_state
+    assert len(applied_state["interfaces"]) == 1
+
+
 def test_aggregate_absent(base_state):
     module_params = dict(
         name=None,

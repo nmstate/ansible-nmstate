@@ -145,10 +145,10 @@ class AnsibleNMStateL3Interface(AnsibleNMState):
 
             if self.params["purge"]:
                 updated_ipconfig = set_addresses(ipconfig, addresses)
+                interface_state[protocol] = updated_ipconfig
             elif addresses:
                 updated_ipconfig = add_addresses(ipconfig, addresses)
-
-            interface_state[protocol] = updated_ipconfig
+                interface_state[protocol] = updated_ipconfig
 
         return interface_state
 

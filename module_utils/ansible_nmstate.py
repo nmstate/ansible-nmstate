@@ -18,7 +18,6 @@
 #
 
 from copy import deepcopy
-import json
 import os
 import tempfile
 import time
@@ -26,14 +25,15 @@ import time
 
 from libnmstate import netapplier
 from libnmstate import netinfo
+from libnmstate import prettystate
 
 
 def write_debug_state(module_name, state):
     debugfile, debugname = tempfile.mkstemp(
-        prefix="{}_debug-{}-".format(module_name, int(time.time()))
+        prefix="{}_debug-{}-".format(module_name, int(time.time())), suffix=".yml"
     )
     debugfile = os.fdopen(debugfile, "w")
-    debugfile.write(json.dumps(state, indent=4))
+    debugfile.write(prettystate.PrettyState(state).yaml)
 
     return debugname
 

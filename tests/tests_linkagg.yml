@@ -1,0 +1,113 @@
+---
+- name: Prepare test for linkagg module
+  hosts: all
+  vars:
+    type: veth
+    interface: slv1
+    interface2: bslr60
+    network_lsr_tests: network-lsr/tests/
+  tasks:
+    - name: Clone network system role to get helper tasks
+      git:
+        repo: "https://github.com/linux-system-roles/network"
+        dest: network-lsr
+        version: master
+      delegate_to: localhost
+
+    - name: Create symlinks
+      file:
+        state: link
+        src: "../network-lsr/tests/tasks/{{ item }}"
+        dest: "tasks/{{ item }}"
+      loop:
+        - show-interfaces.yml
+        - manage-test-interface.yml
+        - assert-device_present.yml
+        - assert-device_absent.yml
+      delegate_to: localhost
+
+    - name: Install nmstate on CentOS 7
+      command: "{{ item }}"
+      args:
+        warn: no
+      loop:
+        - yum -y install NetworkManager epel-release
+        - systemctl enable --now NetworkManager
+        - yum-config-manager --add-repo=https://copr.fedorainfracloud.org/coprs/nmstate/nmstate-git-el7/repo/epel-7/nmstate-nmstate-git-el7-epel-7.repo
+        - yum -y install nmstate
+      when:
+        - ansible_facts.distribution == 'CentOS'
+        - ansible_facts.distribution_major_version == '7'
+
+
+    - name: Install nmstate on Fedora
+      command: "{{ item }}"
+      args:
+        warn: no
+      loop:
+        - yum -y install dnf-utils
+        - yum-config-manager --add-repo=https://copr.fedorainfracloud.org/coprs/nmstate/nmstate-git-fedora/repo/fedora-29/nmstate-nmstate-git-fedora-fedora-29.repo
+        - yum -y install nmstate
+      when:
+        - ansible_facts.distribution == 'Fedora'
+
+    - name: "set type={{ type }}, interface={{ interface }}, interface2: {{ interface2 }}"
+      set_fact:
+        type: "{{ type }}"
+        interface: "{{ interface }}"
+        interface2: "{{ interface2 }}"
+    - include_tasks: tasks/show-interfaces.yml
+    - include_tasks: tasks/manage-test-interface.yml
+      vars:
+        - state: present
+    - include_tasks: tasks/assert-device_present.yml
+    - include_tasks: tasks/assert-device_absent.yml
+      vars:
+        - interface: "{{ interface2 }}"
+  tags:
+    - setup
+
+- name: Run net_linkagg to create bond
+  hosts: all
+  vars:
+    - ansible_network_os: nmstate
+  become: True
+  tasks:
+    - name: "Setup bond {{ interface2 }}"
+      net_linkagg:
+        name: "{{ interface2 }}"
+        state: up
+        members:
+            - "{{ interface }}"
+  roles:
+    - nmstate
+
+- name: Verify that bond interface is present
+  hosts: all
+  tasks:
+    - include_tasks: tasks/assert-device_present.yml
+      vars:
+        - interface: "{{ interface2 }}"
+
+- name: Run net_linkagg to remove bond
+  hosts: all
+  vars:
+    - ansible_network_os: nmstate
+  become: True
+  tasks:
+    - name: "Setup bond {{ interface2 }}"
+      net_linkagg:
+        name: "{{ interface2 }}"
+        state: absent
+        members:
+            - "{{ interface }}"
+  roles:
+    - nmstate
+
+- name: Verify that bond interface is absent
+  hosts: all
+  tasks:
+    - include_tasks: tasks/assert-device_absent.yml
+      vars:
+        - interface: "{{ interface2 }}"
+

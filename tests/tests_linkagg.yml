@@ -95,7 +95,7 @@
     - ansible_network_os: nmstate
   become: True
   tasks:
-    - name: "Setup bond {{ interface2 }}"
+    - name: "Remove bond {{ interface2 }}"
       net_linkagg:
         name: "{{ interface2 }}"
         state: absent

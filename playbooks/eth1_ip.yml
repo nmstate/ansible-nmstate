@@ -1,0 +1,18 @@
+---
+- hosts: all
+  become: True
+  tasks:
+    - nmstate_apply:
+        state:
+          interfaces:
+            - name: eth1
+              type: ethernet
+              state: up
+              ipv4:
+                address:
+                  - ip: 192.0.2.251
+                    prefix-length: 30
+                dhcp: false
+                enabled: true
+  roles:
+    - nmstate

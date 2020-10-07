@@ -1,0 +1,24 @@
+---
+- hosts: all
+  become: True
+  tasks:
+    - nmstate_apply:
+        state:
+          interfaces:
+            - name: bond99
+              type: bond
+              state: up
+              ipv4:
+                address:
+                  - ip: 192.0.2.0
+                    prefix-length: 24
+                enabled: true
+              link-aggregation:
+                mode: balance-rr
+                options:
+                  miimon: '140'
+                slaves:
+                - eth1
+                - eth2
+  roles:
+    - nmstate

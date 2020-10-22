@@ -1,6 +1,6 @@
 # Ansible Support for nmstate
-[![Build Status](https://travis-ci.org/nmstate/ansible-nmstate.svg?branch=master)](https://travis-ci.org/nmstate/ansible-nmstate)
-[![Coverage Status](https://coveralls.io/repos/github/nmstate/ansible-nmstate/badge.svg?branch=master)](https://coveralls.io/github/nmstate/ansible-nmstate?branch=master)
+[![Build Status](https://travis-ci.com/nmstate/ansible-nmstate.svg?branch=main)](https://travis-ci.org/nmstate/ansible-nmstate)
+[![Coverage Status](https://coveralls.io/repos/github/nmstate/ansible-nmstate/badge.svg?branch=main)](https://coveralls.io/github/nmstate/ansible-nmstate?branch=main)
 [![Code Style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/ambv/black)
 
 Ansible-Nmstate allows to configure the network state with

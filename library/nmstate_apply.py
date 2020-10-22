@@ -17,8 +17,6 @@
 # You should have received a copy of the GNU General Public License
 # along with ansible-nmstate.  If not, see <https://www.gnu.org/licenses/>.
 
-from copy import deepcopy
-
 from ansible.module_utils.ansible_nmstate import write_debug_state
 
 from ansible.module_utils.basic import AnsibleModule
@@ -72,9 +70,7 @@ class AnsibleNMStateApply:
         if self.params.get("debug"):
             self.result["previous_state"] = self.previous_state
             self.result["desired_state"] = state
-            self.result["debugfile"] = write_debug_state(
-                self.module_name, state
-            )
+            self.result["debugfile"] = write_debug_state(self.module_name, state)
 
         libnmstate.apply(state)
 

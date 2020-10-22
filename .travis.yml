@@ -1,10 +1,9 @@
 sudo: false
-dist: trusty
+dist: bionic
 language: python
 python:
-  - 2.7
   - 3.6
-  - 3.7-dev
+  - 3.8
 
 install:
   - pip install tox tox-travis

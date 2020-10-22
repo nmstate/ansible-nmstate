@@ -3,8 +3,8 @@
 [![Coverage Status](https://coveralls.io/repos/github/nmstate/ansible-nmstate/badge.svg?branch=master)](https://coveralls.io/github/nmstate/ansible-nmstate?branch=master)
 [![Code Style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/ambv/black)
 
-Ansible-NMState allows to configure the network state with
-[NMState](https://nmstate.github.io/) through Ansible.
+Ansible-Nmstate allows to configure the network state with
+[Nmstate](https://nmstate.github.io/) through Ansible.
 
 ## Development Environment
 
@@ -46,8 +46,8 @@ automatically activate the necessary environment when entering the repository.
 
 ## Basic Operations
 
-For example playbooks, see the `examples/` directory. Run a playbook:
+For example playbooks, see the `playbooks/` directory. Run a playbook:
 
 ```shell
-ansible-playbook playbooks/bond.yml -i rhel7-cloud,
+ansible-playbook playbooks/bond.yml -i rhel8-cloud,
 ```

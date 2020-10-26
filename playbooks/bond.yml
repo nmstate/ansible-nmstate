@@ -2,6 +2,12 @@
 - hosts: all
   become: True
   tasks:
+  # 'port' is only supported by nmstate 0.4 or later version
+    - name: Install nmstate package
+      package:
+        name: nmstate
+        state: present
+
     - nmstate_apply:
         state:
           interfaces:
@@ -17,7 +23,7 @@
                 mode: balance-rr
                 options:
                   miimon: '140'
-                slaves:
+                port:
                 - eth1
                 - eth2
   roles:

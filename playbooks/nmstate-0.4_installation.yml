@@ -1,0 +1,23 @@
+---
+- hosts: all
+  become: True
+  tasks:
+    - name: Enable 'nmstate/nispor' repository
+      command:
+        cmd: sudo dnf -y copr enable nmstate/nispor
+        warn: false
+
+    - name: Enable 'nmstate/NetworkManager' repository
+      command:
+        cmd: sudo dnf -y copr enable nmstate/NetworkManager
+        warn: false
+
+    - name: Enable 'nmstate/nmstate' repository
+      command:
+        cmd: sudo dnf -y copr enable nmstate/nmstate
+        warn: false
+
+    - name: Install nmstate 0.4 package
+      command:
+        cmd: sudo dnf install -y nmstate
+        warn: false

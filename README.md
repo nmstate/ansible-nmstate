@@ -51,3 +51,5 @@ For example playbooks, see the `playbooks/` directory. Run a playbook:
 ```shell
 ansible-playbook playbooks/bond.yml -i rhel8-cloud,
 ```
+Note, in order to run the above playbook, nmstate 0.4 or later version must be
+already installed on target machine.

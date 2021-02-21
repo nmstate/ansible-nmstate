@@ -1,5 +1,5 @@
 #
-# Copyright 2018 Red Hat, Inc.
+# Copyright 2018,2020 Red Hat, Inc.
 #
 # This file is part of ansible-nmstate.
 #
@@ -22,10 +22,7 @@ import os
 import tempfile
 import time
 
-
-from libnmstate import netapplier
-from libnmstate import netinfo
-from libnmstate import prettystate
+import libnmstate
 
 
 def write_debug_state(module_name, state):
@@ -33,7 +30,7 @@ def write_debug_state(module_name, state):
         prefix="{}_debug-{}-".format(module_name, int(time.time())), suffix=".yml"
     )
     debugfile = os.fdopen(debugfile, "w")
-    debugfile.write(prettystate.PrettyState(state).yaml)
+    debugfile.write(libnmstate.PrettyState(state).yaml)
 
     return debugname
 
@@ -52,7 +49,7 @@ def get_interface_state(interfaces, name):
 
 class AnsibleNMState(object):
     def __init__(self, module, module_name):
-        self.previous_state = netinfo.show()
+        self.previous_state = libnmstate.show()
         self.interfaces = deepcopy(self.previous_state["interfaces"])
         self.module = module
         self.params = module.params
@@ -88,8 +85,8 @@ class AnsibleNMState(object):
 
             self.module.exit_json(**self.result)
         else:
-            netapplier.apply(new_partial_state)
-        current_state = netinfo.show()
+            libnmstate.apply(new_partial_state)
+        current_state = libnmstate.show()
         if current_state != self.previous_state:
             self.result["changed"] = True
         self.result["state"] = current_state

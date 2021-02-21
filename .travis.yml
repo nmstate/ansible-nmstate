@@ -1,5 +1,5 @@
 sudo: false
-dist: bionic
+dist: focal
 language: python
 python:
   - 3.6
@@ -7,6 +7,8 @@ python:
 
 install:
   - pip install tox tox-travis
+  - sudo apt update
+  - sudo apt install -y libgirepository1.0-dev libnm0 python3-gi
 
 script:
   - tox

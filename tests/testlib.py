@@ -1,5 +1,5 @@
 #
-# Copyright 2018 Red Hat, Inc.
+# Copyright 2018,2020 Red Hat, Inc.
 #
 # This file is part of ansible-nmstate.
 #
@@ -18,10 +18,7 @@
 #
 
 """ common code for testing the nmstate Ansible modules """
-try:
-    from unittest import mock
-except ImportError:  # py2
-    import mock
+from unittest import mock
 
 ANSIBLE_MOCK_MODULES = {}
 ANSIBLE_MOCK_MODULES["ansible"] = mock.Mock()

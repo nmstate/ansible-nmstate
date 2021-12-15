@@ -1,5 +1,5 @@
 # Ansible Support for nmstate
-[![Build Status](https://travis-ci.com/nmstate/ansible-nmstate.svg?branch=main)](https://travis-ci.org/nmstate/ansible-nmstate)
+[![Build Status](https://travis-ci.com/nmstate/ansible-nmstate.svg?branch=main)](https://travis-ci.com/nmstate/ansible-nmstate)
 [![Coverage Status](https://coveralls.io/repos/github/nmstate/ansible-nmstate/badge.svg?branch=main)](https://coveralls.io/github/nmstate/ansible-nmstate?branch=main)
 [![Code Style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/ambv/black)
 
